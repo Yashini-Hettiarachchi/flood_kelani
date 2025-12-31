@@ -60,10 +60,10 @@ next-env.d.ts
 build/
 dist/
 
-# Model files (optional - uncomment to exclude large files)
-# *.pkl
-# *.h5
-# *.model
+# Model files (large files excluded from GitHub)
+*.pkl
+*.h5
+*.model
 
 # Data files
 *.csv
