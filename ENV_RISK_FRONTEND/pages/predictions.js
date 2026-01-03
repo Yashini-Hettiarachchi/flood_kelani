@@ -186,7 +186,7 @@ export default function Predictions() {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold flex items-center">
                 <i className="fas fa-water text-blue-600 mr-3"></i>
-                Current Flood Risk Status
+                Current Status
               </h3>
               <button
                 onClick={fetchCurrentFloodRisk}
