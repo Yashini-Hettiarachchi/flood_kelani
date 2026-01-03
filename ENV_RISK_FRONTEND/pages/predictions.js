@@ -42,10 +42,45 @@ export default function Predictions() {
   const fetchCurrentRiverLevels = async () => {
     try {
       setLoadingLevels(true);
-      const result = await waterLevelsAPI.getLatest();
+      const result = await predictionsAPI.getMLForecast();
       
-      if (result.success) {
-        setCurrentRiverLevels(result.data);
+      if (result.success && result.data.length > 0) {
+        // Get today's date in the format used in the CSV
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Filter for today's predictions and group by station
+        const todayData = result.data.filter(row => row.Date === today);
+        
+        // If no data for today, get the earliest available date
+        let currentData = todayData;
+        if (currentData.length === 0) {
+          const uniqueDates = [...new Set(result.data.map(row => row.Date))].sort();
+          const earliestDate = uniqueDates[0];
+          currentData = result.data.filter(row => row.Date === earliestDate);
+        }
+        
+        // Get unique stations with their latest prediction
+        const stationMap = new Map();
+        currentData.forEach(row => {
+          if (!stationMap.has(row.Station)) {
+            stationMap.set(row.Station, {
+              station_name: row.Station,
+              current_level: parseFloat(row['Predicted Level (m)'] || 0),
+              status: row.Status,
+              predicted_level: parseFloat(row['Predicted Level (m)'] || 0),
+              message_en: row['Message (English)'],
+              message_si: row['පණිවිඩය (සිංහල)'],
+              measured_at: row.Date,
+              // Set thresholds based on status (approximate values)
+              alert_level: row.Status === 'Normal' ? 2.5 : 2.0,
+              minor_flood_level: row.Status === 'Minor Flood' || row.Status === 'Major Flood' ? 3.0 : 3.5,
+              major_flood_level: row.Status === 'Major Flood' ? 4.0 : 4.5,
+              tributary_name: 'Kelani Ganga'
+            });
+          }
+        });
+        
+        setCurrentRiverLevels(Array.from(stationMap.values()));
       }
     } catch (error) {
       console.error("Error fetching current river levels:", error);
