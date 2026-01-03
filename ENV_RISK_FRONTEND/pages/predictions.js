@@ -197,6 +197,112 @@ export default function Predictions() {
               </button>
             </div>
 
+            {/* Today's Flood Risk Summary */}
+            {!loadingRisk && currentFloodRisk.length > 0 && (
+              <div className="mb-6">
+                {(() => {
+                  const criticalStations = currentFloodRisk.filter(s => s.riskLevel === 'CRITICAL');
+                  const highRiskStations = currentFloodRisk.filter(s => s.riskLevel === 'HIGH');
+                  const mediumRiskStations = currentFloodRisk.filter(s => s.riskLevel === 'MEDIUM');
+                  const hasFloodRisk = criticalStations.length > 0 || highRiskStations.length > 0 || mediumRiskStations.length > 0;
+
+                  if (criticalStations.length > 0) {
+                    return (
+                      <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl p-6 shadow-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <i className="fas fa-exclamation-circle text-4xl mr-4"></i>
+                            <div>
+                              <h4 className="text-2xl font-bold mb-1">⚠️ CRITICAL FLOOD RISK TODAY</h4>
+                              <p className="text-red-100">
+                                {criticalStations.length} station{criticalStations.length > 1 ? 's' : ''} reporting major flood conditions
+                              </p>
+                              <p className="text-sm mt-1 font-semibold">
+                                Affected: {criticalStations.map(s => s.station_name).join(', ')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm opacity-90">Today</div>
+                            <div className="text-lg font-bold">{new Date().toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else if (highRiskStations.length > 0) {
+                    return (
+                      <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl p-6 shadow-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <i className="fas fa-exclamation-triangle text-4xl mr-4"></i>
+                            <div>
+                              <h4 className="text-2xl font-bold mb-1">⚠️ HIGH FLOOD RISK TODAY</h4>
+                              <p className="text-orange-100">
+                                {highRiskStations.length} station{highRiskStations.length > 1 ? 's' : ''} at minor flood level
+                              </p>
+                              <p className="text-sm mt-1 font-semibold">
+                                Affected: {highRiskStations.map(s => s.station_name).join(', ')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm opacity-90">Today</div>
+                            <div className="text-lg font-bold">{new Date().toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else if (mediumRiskStations.length > 0) {
+                    return (
+                      <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl p-6 shadow-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <i className="fas fa-info-circle text-4xl mr-4"></i>
+                            <div>
+                              <h4 className="text-2xl font-bold mb-1">⚡ MODERATE FLOOD RISK TODAY</h4>
+                              <p className="text-yellow-100">
+                                {mediumRiskStations.length} station{mediumRiskStations.length > 1 ? 's' : ''} at alert level - monitor closely
+                              </p>
+                              <p className="text-sm mt-1 font-semibold">
+                                Watch: {mediumRiskStations.map(s => s.station_name).join(', ')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm opacity-90">Today</div>
+                            <div className="text-lg font-bold">{new Date().toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <i className="fas fa-check-circle text-4xl mr-4"></i>
+                            <div>
+                              <h4 className="text-2xl font-bold mb-1">✅ NO FLOOD RISK TODAY</h4>
+                              <p className="text-green-100">
+                                All {currentFloodRisk.length} monitoring stations reporting normal water levels
+                              </p>
+                              <p className="text-sm mt-1">
+                                All systems operating within safe parameters
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm opacity-90">Today</div>
+                            <div className="text-lg font-bold">{new Date().toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+            )}
+
             {loadingRisk ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
