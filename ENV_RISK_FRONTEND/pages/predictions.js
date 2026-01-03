@@ -8,13 +8,13 @@ export default function Predictions() {
   const [showMLData, setShowMLData] = useState(false);
   const [selectedStation, setSelectedStation] = useState("All Stations");
   const [stations, setStations] = useState([]);
-  const [currentFloodRisk, setCurrentFloodRisk] = useState([]);
-  const [loadingRisk, setLoadingRisk] = useState(true);
+  const [currentRiverLevels, setCurrentRiverLevels] = useState([]);
+  const [loadingLevels, setLoadingLevels] = useState(true);
 
   useEffect(() => {
     fetchMLForecast();
     fetchStations();
-    fetchCurrentFloodRisk();
+    fetchCurrentRiverLevels();
   }, []);
 
   const fetchMLForecast = async () => {
@@ -39,47 +39,18 @@ export default function Predictions() {
     }
   };
 
-  const fetchCurrentFloodRisk = async () => {
+  const fetchCurrentRiverLevels = async () => {
     try {
-      setLoadingRisk(true);
+      setLoadingLevels(true);
       const result = await waterLevelsAPI.getLatest();
       
       if (result.success) {
-        // Transform data to include risk level based on thresholds
-        const transformedStations = result.data.map(station => {
-          const currentLevel = parseFloat(station.current_level || 0);
-          const alertLevel = parseFloat(station.alert_level || 0);
-          const minorFloodLevel = parseFloat(station.minor_flood_level || 0);
-          const majorFloodLevel = parseFloat(station.major_flood_level || 0);
-
-          let riskLevel = 'LOW';
-          let status = 'Normal';
-          
-          if (currentLevel >= majorFloodLevel && majorFloodLevel > 0) {
-            riskLevel = 'CRITICAL';
-            status = 'Major Flood';
-          } else if (currentLevel >= minorFloodLevel && minorFloodLevel > 0) {
-            riskLevel = 'HIGH';
-            status = 'Minor Flood';
-          } else if (currentLevel >= alertLevel && alertLevel > 0) {
-            riskLevel = 'MEDIUM';
-            status = 'Alert';
-          }
-
-          return {
-            ...station,
-            currentLevel,
-            status,
-            riskLevel
-          };
-        });
-        
-        setCurrentFloodRisk(transformedStations);
+        setCurrentRiverLevels(result.data);
       }
     } catch (error) {
-      console.error("Error fetching current flood risk:", error);
+      console.error("Error fetching current river levels:", error);
     } finally {
-      setLoadingRisk(false);
+      setLoadingLevels(false);
     }
   };
 
@@ -97,21 +68,6 @@ export default function Predictions() {
       "Normal": "bg-green-100 text-green-800 border-green-300"
     };
     return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
-  };
-
-  const getRiskLevelColor = (riskLevel) => {
-    switch (riskLevel) {
-      case 'CRITICAL':
-        return 'from-red-600 to-red-700';
-      case 'HIGH':
-        return 'from-orange-500 to-orange-600';
-      case 'MEDIUM':
-        return 'from-yellow-500 to-yellow-600';
-      case 'LOW':
-        return 'from-green-500 to-green-600';
-      default:
-        return 'from-gray-500 to-gray-600';
-    }
   };
 
   const getStatusIcon = (status) => {
@@ -181,15 +137,15 @@ export default function Predictions() {
             </p>
           </div>
 
-          {/* Current Flood Risk Status Section */}
+          {/* Current River Levels Cards */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold flex items-center">
-                <i className="fas fa-water text-blue-600 mr-3"></i>
-                Current Status
+              <h3 className="text-xl font-bold flex items-center">
+                <i className="fas fa-water text-blue-600 mr-2"></i>
+                Current River Levels
               </h3>
               <button
-                onClick={fetchCurrentFloodRisk}
+                onClick={fetchCurrentRiverLevels}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
               >
                 <i className="fas fa-sync-alt mr-2"></i>
@@ -197,238 +153,100 @@ export default function Predictions() {
               </button>
             </div>
 
-            {/* Today's Flood Risk Summary */}
-            {!loadingRisk && currentFloodRisk.length > 0 && (
-              <div className="mb-6">
-                {(() => {
-                  const criticalStations = currentFloodRisk.filter(s => s.riskLevel === 'CRITICAL');
-                  const highRiskStations = currentFloodRisk.filter(s => s.riskLevel === 'HIGH');
-                  const mediumRiskStations = currentFloodRisk.filter(s => s.riskLevel === 'MEDIUM');
-                  const hasFloodRisk = criticalStations.length > 0 || highRiskStations.length > 0 || mediumRiskStations.length > 0;
-
-                  if (criticalStations.length > 0) {
-                    return (
-                      <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl p-6 shadow-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <i className="fas fa-exclamation-circle text-4xl mr-4"></i>
-                            <div>
-                              <h4 className="text-2xl font-bold mb-1">⚠️ CRITICAL FLOOD RISK TODAY</h4>
-                              <p className="text-red-100">
-                                {criticalStations.length} station{criticalStations.length > 1 ? 's' : ''} reporting major flood conditions
-                              </p>
-                              <p className="text-sm mt-1 font-semibold">
-                                Affected: {criticalStations.map(s => s.station_name).join(', ')}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm opacity-90">Today</div>
-                            <div className="text-lg font-bold">{new Date().toLocaleDateString()}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  } else if (highRiskStations.length > 0) {
-                    return (
-                      <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl p-6 shadow-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <i className="fas fa-exclamation-triangle text-4xl mr-4"></i>
-                            <div>
-                              <h4 className="text-2xl font-bold mb-1">⚠️ HIGH FLOOD RISK TODAY</h4>
-                              <p className="text-orange-100">
-                                {highRiskStations.length} station{highRiskStations.length > 1 ? 's' : ''} at minor flood level
-                              </p>
-                              <p className="text-sm mt-1 font-semibold">
-                                Affected: {highRiskStations.map(s => s.station_name).join(', ')}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm opacity-90">Today</div>
-                            <div className="text-lg font-bold">{new Date().toLocaleDateString()}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  } else if (mediumRiskStations.length > 0) {
-                    return (
-                      <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl p-6 shadow-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <i className="fas fa-info-circle text-4xl mr-4"></i>
-                            <div>
-                              <h4 className="text-2xl font-bold mb-1">⚡ MODERATE FLOOD RISK TODAY</h4>
-                              <p className="text-yellow-100">
-                                {mediumRiskStations.length} station{mediumRiskStations.length > 1 ? 's' : ''} at alert level - monitor closely
-                              </p>
-                              <p className="text-sm mt-1 font-semibold">
-                                Watch: {mediumRiskStations.map(s => s.station_name).join(', ')}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm opacity-90">Today</div>
-                            <div className="text-lg font-bold">{new Date().toLocaleDateString()}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <i className="fas fa-check-circle text-4xl mr-4"></i>
-                            <div>
-                              <h4 className="text-2xl font-bold mb-1">✅ NO FLOOD RISK TODAY</h4>
-                              <p className="text-green-100">
-                                All {currentFloodRisk.length} monitoring stations reporting normal water levels
-                              </p>
-                              <p className="text-sm mt-1">
-                                All systems operating within safe parameters
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm opacity-90">Today</div>
-                            <div className="text-lg font-bold">{new Date().toLocaleDateString()}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                })()}
-              </div>
-            )}
-
-            {loadingRisk ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {loadingLevels ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="bg-gray-100 rounded-xl p-6 animate-pulse">
-                    <div className="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
-                    <div className="h-4 bg-gray-300 rounded w-1/2 mb-3"></div>
-                    <div className="h-8 bg-gray-300 rounded w-full"></div>
+                  <div key={i} className="bg-gray-100 rounded-lg p-4 animate-pulse">
+                    <div className="h-5 bg-gray-300 rounded w-3/4 mb-3"></div>
+                    <div className="h-8 bg-gray-300 rounded w-1/2 mb-2"></div>
+                    <div className="h-4 bg-gray-300 rounded w-full"></div>
                   </div>
                 ))}
               </div>
-            ) : currentFloodRisk.length === 0 ? (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
-                <i className="fas fa-exclamation-circle text-gray-400 text-4xl mb-3"></i>
-                <p className="text-gray-600">No current flood risk data available</p>
+            ) : currentRiverLevels.length === 0 ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+                <i className="fas fa-exclamation-circle text-gray-400 text-3xl mb-2"></i>
+                <p className="text-gray-600">No current river level data available</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {currentFloodRisk.map((station, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow border border-gray-200"
-                  >
-                    {/* Risk Level Header */}
-                    <div className={`bg-gradient-to-r ${getRiskLevelColor(station.riskLevel)} p-4`}>
-                      <div className="flex items-center justify-between text-white">
-                        <div className="flex-1">
-                          <h4 className="text-lg font-bold">{station.station_name}</h4>
-                          <p className="text-sm opacity-90">{station.tributary_name || 'Kelani Ganga'}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {currentRiverLevels.map((station, index) => {
+                  const currentLevel = parseFloat(station.current_level || 0);
+                  const alertLevel = parseFloat(station.alert_level || 0);
+                  const minorFloodLevel = parseFloat(station.minor_flood_level || 0);
+                  const majorFloodLevel = parseFloat(station.major_flood_level || 0);
+                  
+                  let statusColor = 'bg-green-500';
+                  let statusText = 'Normal';
+                  
+                  if (currentLevel >= majorFloodLevel && majorFloodLevel > 0) {
+                    statusColor = 'bg-red-500';
+                    statusText = 'Major Flood';
+                  } else if (currentLevel >= minorFloodLevel && minorFloodLevel > 0) {
+                    statusColor = 'bg-orange-500';
+                    statusText = 'Minor Flood';
+                  } else if (currentLevel >= alertLevel && alertLevel > 0) {
+                    statusColor = 'bg-yellow-500';
+                    statusText = 'Alert';
+                  }
+
+                  return (
+                    <div
+                      key={index}
+                      className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
+                    >
+                      {/* Station Header */}
+                      <div className={`${statusColor} text-white p-4`}>
+                        <h4 className="font-bold text-lg mb-1">{station.station_name}</h4>
+                        <p className="text-sm opacity-90">{station.tributary_name || 'Kelani Ganga'}</p>
+                      </div>
+
+                      {/* Level Display */}
+                      <div className="p-4">
+                        <div className="flex items-baseline justify-center mb-3">
+                          <span className="text-4xl font-bold text-gray-800">
+                            {currentLevel.toFixed(2)}
+                          </span>
+                          <span className="text-lg text-gray-600 ml-2">meters</span>
                         </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold">
-                            {parseFloat(station.current_level || 0).toFixed(2)}
+
+                        {/* Status Badge */}
+                        <div className="text-center mb-3">
+                          <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                            statusText === 'Major Flood' ? 'bg-red-100 text-red-800' :
+                            statusText === 'Minor Flood' ? 'bg-orange-100 text-orange-800' :
+                            statusText === 'Alert' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {statusText}
+                          </span>
+                        </div>
+
+                        {/* Thresholds */}
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Alert Level:</span>
+                            <span className="font-semibold text-gray-800">{alertLevel.toFixed(2)}m</span>
                           </div>
-                          <div className="text-xs opacity-90">meters</div>
+                          {minorFloodLevel > 0 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600">Minor Flood:</span>
+                              <span className="font-semibold text-gray-800">{minorFloodLevel.toFixed(2)}m</span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </div>
 
-                    {/* Station Details */}
-                    <div className="p-4">
-                      {/* Status Badge */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
-                          <span className="text-2xl mr-2">{getStatusIcon(station.status)}</span>
-                          <span className="font-semibold text-gray-700">{station.status}</span>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          station.riskLevel === 'CRITICAL' ? 'bg-red-100 text-red-800' :
-                          station.riskLevel === 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                          station.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {station.riskLevel} RISK
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-xs text-gray-600 mb-1">
-                          <span>Water Level</span>
-                          <span>{parseFloat(station.percent_of_alert || 0).toFixed(1)}% of Alert</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${
-                              station.riskLevel === 'CRITICAL' ? 'bg-red-600' :
-                              station.riskLevel === 'HIGH' ? 'bg-orange-500' :
-                              station.riskLevel === 'MEDIUM' ? 'bg-yellow-500' :
-                              'bg-green-500'
-                            }`}
-                            style={{ width: `${Math.min(parseFloat(station.percent_of_alert || 0), 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Metrics Grid */}
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <p className="text-gray-600 text-xs">Alert Level</p>
-                          <p className="font-bold text-gray-900">
-                            {parseFloat(station.alert_level || 0).toFixed(2)}m
-                          </p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <p className="text-gray-600 text-xs">Minor Flood</p>
-                          <p className="font-bold text-gray-900">
-                            {station.minor_flood_level ? parseFloat(station.minor_flood_level).toFixed(2) + 'm' : 'N/A'}
-                          </p>
-                        </div>
-                        {station.rainfall_6hr !== null && station.rainfall_6hr !== undefined && (
-                          <div className="bg-blue-50 rounded-lg p-3 col-span-2">
-                            <p className="text-blue-700 text-xs">Rainfall (6hr)</p>
-                            <p className="font-bold text-blue-900">
-                              <i className="fas fa-cloud-rain mr-1"></i>
-                              {parseFloat(station.rainfall_6hr).toFixed(1)}mm
-                            </p>
+                        {/* Last Update */}
+                        {station.measured_at && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500 text-center">
+                            <i className="far fa-clock mr-1"></i>
+                            {new Date(station.measured_at).toLocaleString()}
                           </div>
                         )}
                       </div>
-
-                      {/* Trend Indicator */}
-                      {station.trend && station.trend !== 'UNKNOWN' && station.trend !== 'Stable' && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="flex items-center text-sm">
-                            <i className={`fas ${
-                              station.trend === 'RISING' || station.trend === 'Rising' ? 'fa-arrow-up text-red-500' :
-                              station.trend === 'FALLING' || station.trend === 'Falling' ? 'fa-arrow-down text-green-500' :
-                              'fa-arrows-alt-h text-gray-500'
-                            } mr-2`}></i>
-                            <span className="text-gray-600">
-                              Trend: <span className="font-semibold">{station.trend}</span>
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Last Update */}
-                      {station.measured_at && (
-                        <div className="mt-3 text-xs text-gray-500 text-center">
-                          <i className="far fa-clock mr-1"></i>
-                          Updated: {new Date(station.measured_at).toLocaleString()}
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
