@@ -20,11 +20,29 @@ export default function DashboardStats() {
       const result = await dashboardAPI.getOverview();
       
       if (result.success) {
+        // Calculate statistics from the water levels data
+        const waterLevels = result.data.latestWaterLevels || [];
+        const normalCount = waterLevels.filter(w => w.status === 'Normal').length;
+        const alertCount = waterLevels.filter(w => w.status === 'Alert').length;
+        const minorFloodCount = waterLevels.filter(w => w.status === 'Minor Flood').length;
+        const majorFloodCount = waterLevels.filter(w => w.status === 'Major Flood').length;
+        const totalRainfall = waterLevels.reduce((sum, w) => sum + (parseFloat(w.rainfall) || 0), 0);
+
         // Transform data to match component expectations
         const transformedData = {
-          totalStations: result.data.stats.totalStations,
-          activeAlerts: result.data.stats.activeAlerts,
-          monitoringPoints: result.data.stats.monitoringPoints,
+          statistics: {
+            total_stations: result.data.stats.totalStations || 0,
+            normal_count: normalCount,
+            alert_count: alertCount,
+            minor_flood_count: minorFloodCount,
+            major_flood_count: majorFloodCount,
+            flood_count: minorFloodCount + majorFloodCount,
+            total_rainfall: totalRainfall
+          },
+          latest_report: {
+            report_title: `${waterLevels.length} Stations Active`,
+            report_date: new Date().toISOString()
+          },
           lastUpdate: new Date().toISOString(),
           status: result.data.activeAlerts.length > 0 ? 'warning' : 'normal'
         };
@@ -73,67 +91,6 @@ export default function DashboardStats() {
 
   return (
     <>
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        {/* Total Stations */}
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <i className="fas fa-broadcast-tower text-2xl"></i>
-            </div>
-            <div className="text-right">
-              <p className="text-blue-100 text-sm">Total Stations</p>
-              <p className="text-3xl font-bold">{stats.total_stations || 0}</p>
-            </div>
-          </div>
-          <div className="text-sm text-blue-100">Colombo District</div>
-        </div>
-
-        {/* Normal Status */}
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <i className="fas fa-check-circle text-2xl"></i>
-            </div>
-            <div className="text-right">
-              <p className="text-green-100 text-sm">Normal</p>
-              <p className="text-3xl font-bold">{stats.normal_count || 0}</p>
-            </div>
-          </div>
-          <div className="text-sm text-green-100">Stations safe</div>
-        </div>
-
-        {/* Alert/Warning */}
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <i className="fas fa-exclamation-triangle text-2xl"></i>
-            </div>
-            <div className="text-right">
-              <p className="text-orange-100 text-sm">Alert</p>
-              <p className="text-3xl font-bold">
-                {(stats.alert_count || 0) + (stats.flood_count || 0)}
-              </p>
-            </div>
-          </div>
-          <div className="text-sm text-orange-100">Requires attention</div>
-        </div>
-
-        {/* Total Rainfall */}
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <i className="fas fa-cloud-rain text-2xl"></i>
-            </div>
-            <div className="text-right">
-              <p className="text-purple-100 text-sm">Total Rainfall</p>
-              <p className="text-3xl font-bold">{parseFloat(stats.total_rainfall || 0).toFixed(0)}</p>
-            </div>
-          </div>
-          <div className="text-sm text-purple-100">mm (6hr period)</div>
-        </div>
-      </div>
-
       {/* Last Update Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
         <div className="flex items-center justify-between">

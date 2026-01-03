@@ -5,7 +5,7 @@ import DashboardStats from "../components/DashboardStats";
 import StationCards from "../components/StationCards";
 import AlertBanner from "../components/AlertBanner";
 import WeatherWidget from "../components/WeatherWidget";
-import FloodAPIComparison from "../components/FloodAPIComparison";
+import SevenDayAnalysisChart from "../components/SevenDayAnalysisChart";
 
 export default function Dashboard() {
 
@@ -75,20 +75,16 @@ export default function Dashboard() {
           {/* Real-time Statistics from Database */}
           <DashboardStats />
 
-          {/* Weather Widget and Flood API Comparison */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Weather Widget */}
+          <div className="mb-8">
             <WeatherWidget />
-            <FloodAPIComparison />
           </div>
 
-          {/* Station Status Cards - Real-time Data */}
+          {/* 7-Day Forecast Analysis Chart */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              <i className="fas fa-broadcast-tower text-blue-600 mr-2"></i>
-              Monitoring Stations - Live Status
-            </h2>
-            <StationCards />
+            <SevenDayAnalysisChart />
           </div>
+
         </div>
       </div>
     </>
