@@ -45,37 +45,57 @@ export default function Predictions() {
       const result = await predictionsAPI.getMLForecast();
       
       if (result.success && result.data.length > 0) {
-        // Get today's date in the format used in the CSV
-        const today = new Date().toISOString().split('T')[0];
+        // Get the first date from the CSV (earliest available forecast date)
+        const uniqueDates = [...new Set(result.data.map(row => row.Date))].sort();
+        const firstDate = uniqueDates[0];
         
-        // Filter for today's predictions and group by station
-        const todayData = result.data.filter(row => row.Date === today);
+        // Filter for the first date's predictions
+        const currentData = result.data.filter(row => row.Date === firstDate);
         
-        // If no data for today, get the earliest available date
-        let currentData = todayData;
-        if (currentData.length === 0) {
-          const uniqueDates = [...new Set(result.data.map(row => row.Date))].sort();
-          const earliestDate = uniqueDates[0];
-          currentData = result.data.filter(row => row.Date === earliestDate);
-        }
-        
-        // Get unique stations with their latest prediction
+        // Get unique stations with their data from the first forecast date
         const stationMap = new Map();
         currentData.forEach(row => {
           if (!stationMap.has(row.Station)) {
+            const predictedLevel = parseFloat(row['Predicted Level (m)'] || 0);
+            
+            // Determine thresholds based on status and predicted level
+            let alertLevel, minorFloodLevel, majorFloodLevel;
+            
+            if (row.Status === 'Normal') {
+              alertLevel = predictedLevel + 0.5;
+              minorFloodLevel = predictedLevel + 1.0;
+              majorFloodLevel = predictedLevel + 1.5;
+            } else if (row.Status === 'Alert') {
+              alertLevel = predictedLevel - 0.2;
+              minorFloodLevel = predictedLevel + 0.5;
+              majorFloodLevel = predictedLevel + 1.0;
+            } else if (row.Status === 'Minor Flood') {
+              alertLevel = predictedLevel - 0.5;
+              minorFloodLevel = predictedLevel - 0.2;
+              majorFloodLevel = predictedLevel + 0.5;
+            } else if (row.Status === 'Major Flood') {
+              alertLevel = predictedLevel - 1.0;
+              minorFloodLevel = predictedLevel - 0.5;
+              majorFloodLevel = predictedLevel - 0.2;
+            } else {
+              alertLevel = 2.0;
+              minorFloodLevel = 3.0;
+              majorFloodLevel = 4.0;
+            }
+            
             stationMap.set(row.Station, {
               station_name: row.Station,
-              current_level: parseFloat(row['Predicted Level (m)'] || 0),
+              current_level: predictedLevel,
               status: row.Status,
-              predicted_level: parseFloat(row['Predicted Level (m)'] || 0),
+              predicted_level: predictedLevel,
               message_en: row['Message (English)'],
               message_si: row['පණිවිඩය (සිංහල)'],
               measured_at: row.Date,
-              // Set thresholds based on status (approximate values)
-              alert_level: row.Status === 'Normal' ? 2.5 : 2.0,
-              minor_flood_level: row.Status === 'Minor Flood' || row.Status === 'Major Flood' ? 3.0 : 3.5,
-              major_flood_level: row.Status === 'Major Flood' ? 4.0 : 4.5,
-              tributary_name: 'Kelani Ganga'
+              alert_level: alertLevel,
+              minor_flood_level: minorFloodLevel,
+              major_flood_level: majorFloodLevel,
+              tributary_name: 'Kelani Ganga',
+              forecast_date: firstDate
             });
           }
         });
@@ -175,10 +195,22 @@ export default function Predictions() {
           {/* Current River Levels Cards */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold flex items-center">
-                <i className="fas fa-water text-blue-600 mr-2"></i>
-                Current River Levels
-              </h3>
+              <div>
+                <h3 className="text-xl font-bold flex items-center">
+                  <i className="fas fa-water text-blue-600 mr-2"></i>
+                  Current River Levels
+                </h3>
+                {currentRiverLevels.length > 0 && currentRiverLevels[0].forecast_date && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    <i className="far fa-calendar mr-1"></i>
+                    Forecast Date: {new Date(currentRiverLevels[0].forecast_date).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                )}
+              </div>
               <button
                 onClick={fetchCurrentRiverLevels}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
